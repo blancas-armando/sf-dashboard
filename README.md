@@ -4,6 +4,8 @@ A live city dashboard for San Francisco, built for the [TRMNL](https://usetrmnl.
 
 Shows real-time MUNI N-Judah departures, current weather, Giants/Warriors game day alerts (with a crowd warning for home games), and a daily carry checklist. Data is fetched from public APIs and served as TRMNL Framework v3 markup.
 
+![SF Dashboard](docs/dashboard-web.png)
+
 ## What It Shows
 
 | Panel | Source | What |
