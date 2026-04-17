@@ -14,12 +14,11 @@ export async function GET(request: Request) {
   const markup = buildTrmnlMarkup(data);
 
   const webhookUrl = process.env.TRMNL_WEBHOOK_URL;
-  const pluginUuid = process.env.TRMNL_PLUGIN_UUID;
 
-  if (!webhookUrl || !pluginUuid) {
+  if (!webhookUrl) {
     return NextResponse.json({
       status: "skipped",
-      reason: "TRMNL_WEBHOOK_URL or TRMNL_PLUGIN_UUID not configured",
+      reason: "TRMNL_WEBHOOK_URL not configured",
       markup,
     });
   }
