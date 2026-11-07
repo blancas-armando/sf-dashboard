@@ -4,7 +4,6 @@ import type { Game, GamesData } from "./types";
 type EspnCompetitor = {
   homeAway: "home" | "away";
   team: { displayName: string };
-  score: string;
 };
 
 type EspnEvent = {
@@ -70,17 +69,12 @@ function findTeamGame(
     : homeTeam?.team.displayName ?? "TBD";
 
   const status = parseStatus(event.status.type.state);
-  const score =
-    status !== "scheduled" && homeTeam && awayTeam
-      ? `${homeTeam.score}-${awayTeam.score}`
-      : undefined;
 
   return {
     team: teamName as Game["team"],
     opponent,
     time: formatGameTime(event.date),
     status,
-    score,
     isHome,
   };
 }
@@ -103,5 +97,6 @@ export const fetchGames = unstable_cache(
     return { games: results.filter((g): g is Game => g !== null) };
   },
   ["games"],
-  { revalidate: 3600 }
+  // Only start times and live/final status matter for the busy-trains alert.
+  { revalidate: 300 }
 );

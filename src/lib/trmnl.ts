@@ -1,4 +1,4 @@
-import type { DashboardData, Game, TransitStop } from "./types";
+import type { DashboardData, TransitStop } from "./types";
 
 function esc(str: string): string {
   return str
@@ -99,50 +99,38 @@ function buildWeatherItem(data: DashboardData): string {
     </div>`;
 }
 
-function gameStatusText(game: Game): string {
-  if (game.status === "scheduled") return game.time;
-  if (game.status === "in_progress") return `LIVE ${esc(game.score ?? "")}`;
-  return `Final ${esc(game.score ?? "")}`;
-}
-
-function buildGamesItem(data: DashboardData): string {
-  const games = data.games?.games ?? [];
-
-  if (games.length === 0) {
+function buildForecastItem(data: DashboardData): string {
+  if (!data.weather) {
     return `
     <div class="item">
       <div class="meta"></div>
       <div class="content">
-        <span class="label label--medium">GAME DAY</span>
-        <span class="label">No games today</span>
+        <span class="label label--medium">FORECAST</span>
+        <span class="label">Unavailable</span>
       </div>
     </div>`;
   }
 
-  const rows = games
-    .slice(0, 2)
-    .map((game) => {
-      const matchup = game.isHome
-        ? `${esc(game.team)} vs ${esc(game.opponent)}`
-        : `${esc(game.team)} @ ${esc(game.opponent)}`;
-      const busy = game.isHome ? " &middot; BUSY TRAINS" : "";
-      const statusCls = game.isHome
-        ? "label label--small label--underline"
-        : "label label--small";
-      return `
-        <div class="flex flex--col gap--xsmall">
-          <span class="value value--xsmall">${matchup}</span>
-          <span class="${statusCls}">${gameStatusText(game)}${busy}</span>
-        </div>`;
-    })
+  const { forecast, sun } = data.weather;
+  const slots = forecast
+    .map(
+      (slot) => `
+          <div class="flex flex--col">
+            <span class="label label--small">${esc(slot.time)}</span>
+            <span class="value value--xsmall value--tnums">${slot.temp}°</span>
+            <span class="label label--small">${slot.rainChance}% rain</span>
+          </div>`
+    )
     .join("");
 
   return `
     <div class="item">
       <div class="meta"></div>
       <div class="content gap--medium">
-        <span class="label label--medium">GAME DAY</span>
-        ${rows}
+        <span class="label label--medium">FORECAST</span>
+        <div class="flex flex--row gap--large">${slots}
+        </div>
+        <span class="label">${sun.event} ${esc(sun.time)}</span>
       </div>
     </div>`;
 }
@@ -168,12 +156,12 @@ export function buildTrmnlMarkup(data: DashboardData): string {
     </div>
     <div class="grid grid--cols-2 gap--medium">
       ${buildWeatherItem(data)}
-      ${buildGamesItem(data)}
+      ${buildForecastItem(data)}
     </div>
   </div>
   <div class="title_bar">
     <h1 class="title">SF Dashboard</h1>
-    <span class="instance">${esc(data.updatedAt)}</span>
+    <span class="instance">${data.gameAlert ? `${esc(data.gameAlert)} &middot; ` : ""}${esc(data.updatedAt)}</span>
   </div>
 </div>`.trim();
 }

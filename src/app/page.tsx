@@ -1,7 +1,8 @@
 import { Dashboard } from "@/components/dashboard";
 import { fetchDashboardData } from "@/lib/dashboard";
 
-export const revalidate = 60;
+// Data fetchers carry their own caches; render per request so ETAs are current.
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const data = await fetchDashboardData();

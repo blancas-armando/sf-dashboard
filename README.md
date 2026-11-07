@@ -2,7 +2,7 @@
 
 A live city dashboard for San Francisco, built for the [TRMNL](https://usetrmnl.com) e-ink display.
 
-Shows real-time MUNI N-Judah departures, current weather, Giants/Warriors game day alerts (with a crowd warning for home games), and a daily carry checklist. Data is fetched from public APIs and served as TRMNL Framework v3 markup.
+Shows real-time MUNI N-Judah departures, current weather, the next 12 hours of forecast with sunrise/sunset, a busy-trains alert on Giants/Warriors home game days, and a daily carry checklist. Data is fetched from public APIs and served as TRMNL Framework v3 markup.
 
 ![SF Dashboard](docs/dashboard-web.png)
 
@@ -10,9 +10,10 @@ Shows real-time MUNI N-Judah departures, current weather, Giants/Warriors game d
 
 | Panel | Source | What |
 |-------|--------|------|
-| **N-Judah** | 511.org SIRI | Next departures from 4th & King and Montgomery |
+| **N-Judah** | 511.org GTFS-Realtime | Next departures from 4th & King and Montgomery |
 | **Weather** | OpenWeatherMap | Current temp, conditions, high/low |
-| **Game Day** | ESPN Scoreboard | Giants and Warriors games today, home game crowd warnings |
+| **Forecast** | OpenWeatherMap | Next four 3-hour slots (temp, rain chance) and next sunrise/sunset |
+| **Game alert** | ESPN Scoreboard | One-line busy-trains warning when the Giants or Warriors play at home |
 | **Checklist** | Static | Keys, Wallet, Headphones, Water Bottle |
 
 ## How It Works
@@ -78,7 +79,7 @@ Open `http://localhost:3000/preview` to see the e-ink output.
 src/
   lib/
     dashboard.ts    # Shared data fetcher (all sources + error handling)
-    transit.ts      # 511.org SIRI API → N-Judah departures
+    transit.ts      # 511.org GTFS-Realtime feed → N-Judah departures
     weather.ts      # OpenWeatherMap → current conditions
     games.ts        # ESPN Scoreboard → Giants/Warriors
     checklist.ts    # Static checklist items

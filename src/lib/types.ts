@@ -1,6 +1,4 @@
 export type TransitDeparture = {
-  routeName: string;
-  destination: string;
   etaMinutes: number;
 };
 
@@ -19,6 +17,14 @@ export type WeatherData = {
   icon: string;
   high: number;
   low: number;
+  forecast: ForecastSlot[];
+  sun: { event: "Sunrise" | "Sunset"; time: string };
+};
+
+export type ForecastSlot = {
+  time: string;
+  temp: number;
+  rainChance: number;
 };
 
 export type Game = {
@@ -26,7 +32,6 @@ export type Game = {
   opponent: string;
   time: string;
   status: "scheduled" | "in_progress" | "final";
-  score?: string;
   isHome: boolean;
 };
 
@@ -42,7 +47,7 @@ export type ChecklistItem = {
 export type DashboardData = {
   transit: TransitData | null;
   weather: WeatherData | null;
-  games: GamesData | null;
+  gameAlert: string | null;
   checklist: ChecklistItem[];
   updatedAt: string;
 };

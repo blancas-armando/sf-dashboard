@@ -17,7 +17,7 @@ npm run lint   # ESLint
 
 ## Data Sources
 
-- **MUNI N-Judah**: 511.org StopMonitoring SIRI API (key required)
+- **MUNI N-Judah**: 511.org GTFS-Realtime trip updates (key required; one request covers all stops, 60 req/hr limit)
 - **Weather**: OpenWeatherMap Current Weather API (key required)
 - **Game Day**: ESPN public API (no key needed)
 - **311 Reports**: SF Open Data Socrata API (no key needed)
