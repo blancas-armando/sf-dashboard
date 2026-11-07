@@ -1,87 +1,74 @@
 import { unstable_cache } from "next/cache";
+import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 import type { TransitData } from "./types";
 
+const { FeedMessage, TripDescriptor, TripUpdate } = GtfsRealtimeBindings.transit_realtime;
+type FeedTime = NonNullable<GtfsRealtimeBindings.transit_realtime.TripUpdate.IStopTimeEvent["time"]>;
+
 const API_KEY = process.env.TRANSIT_511_API_KEY!;
+const FEED_URL = `https://api.511.org/transit/tripupdates?api_key=${API_KEY}&agency=SF`;
+const ROUTE = "N";
 
 const STOPS = [
   { code: "15237", name: "4th & King" },
   { code: "15731", name: "Montgomery" },
 ];
 
-type SiriVisit = {
-  MonitoredVehicleJourney: {
-    LineRef: string;
-    DirectionRef: string;
-    PublishedLineName: string;
-    DestinationName: string;
-    MonitoredCall: {
-      StopPointName: string;
-      ExpectedArrivalTime: string;
-      ExpectedDepartureTime: string | null;
-    };
-  };
-};
+const DROPPED_TRIPS = new Set([
+  TripDescriptor.ScheduleRelationship.CANCELED,
+  TripDescriptor.ScheduleRelationship.DELETED,
+]);
 
-type SiriResponse = {
-  ServiceDelivery: {
-    StopMonitoringDelivery: {
-      MonitoredStopVisit: SiriVisit[];
-    };
-  };
-};
-
-async function fetchStop(stopCode: string): Promise<SiriVisit[]> {
-  const url = `https://api.511.org/transit/StopMonitoring?api_key=${API_KEY}&agency=SF&stopcode=${stopCode}&format=json`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-
-  const text = await res.text();
-  // 511 API sometimes returns BOM character
-  const clean = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-  const data: SiriResponse = JSON.parse(clean);
-
-  return (
-    data?.ServiceDelivery?.StopMonitoringDelivery?.MonitoredStopVisit ?? []
-  );
+function toUnixSeconds(time: FeedTime): number {
+  return typeof time === "number" ? time : time.toNumber();
 }
 
-function minutesUntil(isoTime: string): number {
-  const diff = new Date(isoTime).getTime() - Date.now();
-  return Math.max(0, Math.round(diff / 60000));
-}
+// One GTFS-Realtime request covers every Muni stop, so refreshing once a minute
+// stays within 511's limit of 60 requests/hour. The cache holds absolute
+// arrival times; the countdown is computed per request so it stays correct
+// however old the cached feed is.
+const fetchArrivalTimes = unstable_cache(
+  async (): Promise<Record<string, number[]>> => {
+    const res = await fetch(FEED_URL);
+    // Throw rather than return nothing so a 429 or outage keeps the last good
+    // data in the cache instead of caching "no trains".
+    if (!res.ok) throw new Error(`511 trip updates error: ${res.status}`);
 
-export const fetchTransitDepartures = unstable_cache(
-  async (): Promise<TransitData> => {
-    const results = await Promise.all(
-      STOPS.map(async (stop) => {
-        const visits = await fetchStop(stop.code);
-
-        const nJudahVisits = visits.filter(
-          (v) => v.MonitoredVehicleJourney.LineRef === "N"
-        );
-
-        const departures = nJudahVisits
-          .map((v) => {
-            const journey = v.MonitoredVehicleJourney;
-            const eta = minutesUntil(
-              journey.MonitoredCall.ExpectedArrivalTime
-            );
-            return {
-              routeName: "N",
-              destination: journey.DestinationName,
-              etaMinutes: eta,
-            };
-          })
-          .filter((d) => d.etaMinutes >= 0)
-          .sort((a, b) => a.etaMinutes - b.etaMinutes)
-          .slice(0, 4);
-
-        return { stopName: stop.name, departures };
-      })
+    const feed = FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
+    const arrivals: Record<string, number[]> = Object.fromEntries(
+      STOPS.map((stop) => [stop.code, []])
     );
 
-    return { stops: results };
+    for (const { tripUpdate } of feed.entity) {
+      if (!tripUpdate || tripUpdate.trip.routeId !== ROUTE) continue;
+      if (DROPPED_TRIPS.has(tripUpdate.trip.scheduleRelationship ?? 0)) continue;
+
+      for (const update of tripUpdate.stopTimeUpdate ?? []) {
+        if (!update.stopId || !(update.stopId in arrivals)) continue;
+        if (update.scheduleRelationship === TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED) continue;
+        const time = update.arrival?.time ?? update.departure?.time;
+        if (time) arrivals[update.stopId].push(toUnixSeconds(time));
+      }
+    }
+
+    return arrivals;
   },
-  ["transit-departures"],
+  ["transit-gtfs-rt"],
   { revalidate: 60 }
 );
+
+export async function fetchTransitDepartures(): Promise<TransitData> {
+  const now = Date.now() / 1000;
+  const arrivals = await fetchArrivalTimes();
+
+  return {
+    stops: STOPS.map((stop) => ({
+      stopName: stop.name,
+      departures: arrivals[stop.code]
+        .map((time) => ({ etaMinutes: Math.round((time - now) / 60) }))
+        .filter((d) => d.etaMinutes >= 0)
+        .sort((a, b) => a.etaMinutes - b.etaMinutes)
+        .slice(0, 4),
+    })),
+  };
+}

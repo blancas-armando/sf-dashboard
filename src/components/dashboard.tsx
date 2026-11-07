@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardData } from "@/lib/types";
 import { TransitPanel } from "./transit-panel";
 import { WeatherPanel } from "./weather-panel";
-import { GameDayPanel } from "./game-day-panel";
+import { ForecastPanel } from "./forecast-panel";
 import { ChecklistPanel } from "./checklist-panel";
 
 export function Dashboard({ initial }: { initial: DashboardData }) {
@@ -40,11 +40,16 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
       </header>
 
       <div className="space-y-4">
+        {data.gameAlert && (
+          <p className="rounded-md border border-yellow-400/20 bg-yellow-400/5 px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-yellow-400/90">
+            {data.gameAlert}
+          </p>
+        )}
         <TransitPanel data={data.transit} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <WeatherPanel data={data.weather} />
-          <GameDayPanel data={data.games} />
+          <ForecastPanel data={data.weather} />
         </div>
 
         <ChecklistPanel items={data.checklist} />

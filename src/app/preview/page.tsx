@@ -6,12 +6,13 @@ export const metadata: Metadata = {
   title: "TRMNL Preview — SF Dashboard",
 };
 
-export const revalidate = 60;
+// Data fetchers carry their own caches; render per request so ETAs are current.
+export const dynamic = "force-dynamic";
 
 export default async function PreviewPage() {
   const data = await fetchDashboardData();
+  // srcDoc is a React attribute, so React escapes the markup itself.
   const markup = buildTrmnlMarkup(data);
-  const escapedMarkup = markup.replace(/"/g, "&quot;");
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-neutral-950 p-8">
@@ -20,7 +21,7 @@ export default async function PreviewPage() {
           TRMNL E-Ink Preview
         </h1>
         <p className="mt-1 font-mono text-xs text-neutral-600">
-          800 &times; 480 &mdash; TRMNL Framework v3
+          800 &times; 480 &mdash; TRMNL Framework 3.0.3
         </p>
       </div>
 
@@ -34,7 +35,7 @@ export default async function PreviewPage() {
               srcDoc={`<!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="https://usetrmnl.com/css/latest/plugins.css" />
+  <link rel="stylesheet" href="https://trmnl.com/css/3.0.3/plugins.css" />
   <style>
     html, body {
       margin: 0;
@@ -48,8 +49,10 @@ export default async function PreviewPage() {
     body { -webkit-font-smoothing: none; image-rendering: pixelated; }
   </style>
 </head>
-<body class="screen screen--md">
-  ${escapedMarkup}
+<body class="trmnl">
+  <div class="screen screen--og screen--md screen--1bit">
+    ${markup}
+  </div>
 </body>
 </html>`}
               width={800}
@@ -74,7 +77,7 @@ export default async function PreviewPage() {
               srcDoc={`<!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="https://usetrmnl.com/css/latest/plugins.css" />
+  <link rel="stylesheet" href="https://trmnl.com/css/3.0.3/plugins.css" />
   <style>
     html, body {
       margin: 0;
@@ -90,8 +93,10 @@ export default async function PreviewPage() {
     body { -webkit-font-smoothing: none; }
   </style>
 </head>
-<body class="screen screen--lg">
-  ${escapedMarkup}
+<body class="trmnl">
+  <div class="screen screen--v2 screen--lg screen--4bit">
+    ${markup}
+  </div>
 </body>
 </html>`}
               width={936}
