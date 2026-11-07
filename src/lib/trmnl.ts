@@ -43,10 +43,12 @@ function buildTransitItem(stop: TransitStop): string {
     </div>`;
   }
 
-  const heroValue = next.etaMinutes === 0 ? "Now" : `${next.etaMinutes} min`;
+  // Clock times, not countdowns: the screen can sit for many minutes between
+  // refreshes, and "5:31" stays true the whole time while "6 min" goes stale.
+  const heroValue = next.arrivalTime;
   const alsoText =
     upcoming.length > 0
-      ? `then ${upcoming.map((d) => d.etaMinutes).join(", ")} min`
+      ? `then ${upcoming.map((d) => d.arrivalTime).join(", ")}`
       : "";
 
   return `

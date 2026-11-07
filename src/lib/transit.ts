@@ -23,6 +23,17 @@ function toUnixSeconds(time: FeedTime): number {
   return typeof time === "number" ? time : time.toNumber();
 }
 
+// "5:31" with no AM/PM: on a glanceable screen the hour is never ambiguous.
+function formatClockTime(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000)
+    .toLocaleTimeString("en-US", {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+    .replace(/\s?[AP]M$/, "");
+}
+
 // One GTFS-Realtime request covers every Muni stop, so refreshing once a minute
 // stays within 511's limit of 60 requests/hour. The cache holds absolute
 // arrival times; the countdown is computed per request so it stays correct
@@ -65,7 +76,10 @@ export async function fetchTransitDepartures(): Promise<TransitData> {
     stops: STOPS.map((stop) => ({
       stopName: stop.name,
       departures: arrivals[stop.code]
-        .map((time) => ({ etaMinutes: Math.round((time - now) / 60) }))
+        .map((time) => ({
+          etaMinutes: Math.round((time - now) / 60),
+          arrivalTime: formatClockTime(time),
+        }))
         .filter((d) => d.etaMinutes >= 0)
         .sort((a, b) => a.etaMinutes - b.etaMinutes)
         .slice(0, 4),

@@ -1,5 +1,6 @@
 export type TransitDeparture = {
   etaMinutes: number;
+  arrivalTime: string;
 };
 
 export type TransitStop = {
